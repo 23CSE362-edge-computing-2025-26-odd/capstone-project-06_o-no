@@ -1,0 +1,24 @@
+
+
+1) How realistic / trustworthy is the synthetic data you used — won’t models trained on synthetic data fail on real machines?
+
+	we are using already available benchmark datasets that were created using simulation tools and validated in prior research. These datasets are widely used in predictive maintenance studies, so they provide realistic fault patterns for training and testing. Since our work is simulation-based, this ensures consistency and reliability without needing physical experiments.
+	
+	
+2)  Why put models on the edge instead of sending everything to the cloud?
+
+As we've mentioned in the PowerPoint Presentation, there are a few reasons why models are used in edge instead of the cloud. Two of the main reasons are real-time decision requirement and high frequency and volume sensor data.
+
+Real-Time Decision Requirement - Faults like belt slippage or overheating in CNC machines need to be detected and acted upon within milliseconds to prevent damage or production halts. Cloud latency is too high for such time-sensitive responses.
+
+High-Frequency, High-Volume Sensor Data - Vibration sensors and temperature sensors generate large volumes of data every second. Therefore, it is better to process at the edge instead of the cloud due to bandwidth and time constraints.
+
+
+3)  Which ML/DL models run on edge vs cloud, and how did you choose/tune them?
+
+In IntelliPdM, Random Forest and small ANNs are used at the Edge to quickly process structured data from vibration, temperature, pressure, and acoustic sensors for fast fault detection and basic classification. For deeper analysis, the Cloud hosts a hybrid deep learning setup, where 2D-CNNs handle thermal image data and a 1D-CNN processes sequential time-series signals like vibration and acoustics, enabling the system to capture complex fault patterns over time with higher accuracy.
+
+
+4) What happens when the network is unreliable — can detection continue if cloud is unreachable?
+
+Based on the architecture, detection can still continue even if the cloud is unreachable. When the network is weak, data will be stored in an MQTT broker at the edge. Once the network comes back, the stored data will be sent to the cloud and processed there, ensuring nothing is lost.
