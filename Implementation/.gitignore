@@ -23,3 +23,7 @@ build/
 # OS specific
 .DS_Store
 Thumbs.db
+
+*.h5
+*.joblib
+*.csv
