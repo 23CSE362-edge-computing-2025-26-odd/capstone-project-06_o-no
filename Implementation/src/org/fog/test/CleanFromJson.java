@@ -36,7 +36,6 @@ public class CleanFromJson {
 			boolean trace_flag = false; // mean trace events
 
 			CloudSim.init(num_user, calendar, trace_flag);
-
 			String appId = "vr_game";
 			
 			FogBroker broker = new FogBroker("broker");

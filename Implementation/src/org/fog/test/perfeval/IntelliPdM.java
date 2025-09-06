@@ -1,17 +1,21 @@
 package org.fog.test.perfeval;
 
-import org.cloudbus.cloudsim.Log;
-import org.cloudbus.cloudsim.core.CloudSim;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import javax.swing.*;
 import org.cloudbus.cloudsim.Host;
+import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Pe;
 import org.cloudbus.cloudsim.Storage;
+import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.power.PowerHost;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
-import org.fog.application.Application;
 import org.fog.application.AppEdge;
 import org.fog.application.AppLoop;
+import org.fog.application.Application;
 import org.fog.application.selectivity.FractionalSelectivity;
 import org.fog.entities.Actuator;
 import org.fog.entities.FogDevice;
@@ -26,11 +30,6 @@ import org.fog.scheduler.StreamOperatorScheduler;
 import org.fog.utils.FogLinearPowerModel;
 import org.fog.utils.FogUtils;
 import org.fog.utils.distribution.DeterministicDistribution;
-import javax.swing.*;
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
 
 public class IntelliPdM {
     static List<FogDevice> fogDevices = new ArrayList<>();
@@ -47,16 +46,21 @@ public class IntelliPdM {
         CloudSim.init(userId, calendar, trace_flag);
 
         try {
-            ProcessBuilder pb = new ProcessBuilder("/home/rishiikesh/Rishiikesh/Sem5/Edge Computing/iFogSim/venv/bin/python", "python_ml/train_cnn.py");
-            pb.inheritIO();
-            pb.start().waitFor();
-            ProcessBuilder pbRf = new ProcessBuilder("/home/rishiikesh/Rishiikesh/Sem5/Edge Computing/iFogSim/venv/bin/python", "python_ml/train_rf.py");
-            pbRf.inheritIO();
+           ProcessBuilder pb = new ProcessBuilder(
+    "C:/Users/Yogiram/Desktop/Edge computing/ssample/venv/Scripts/python.exe",
+    "python_ml/train_cnn.py"
+);
+pb.inheritIO();
+pb.start().waitFor();
+
+ProcessBuilder pbRf = new ProcessBuilder(
+    "C:/Users/Yogiram/Desktop/Edge computing/ssample/venv/Scripts/python.exe",
+    "python_ml/train_rf.py"
+);
             pbRf.start().waitFor();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         String appId = "IntelliPdM";
         Application app = createApplication(appId, userId);
 
