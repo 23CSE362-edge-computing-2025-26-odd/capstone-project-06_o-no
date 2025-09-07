@@ -28,9 +28,12 @@ import org.fog.utils.FogUtils;
 import org.fog.utils.distribution.DeterministicDistribution;
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
+import io.github.cdimascio.dotenv.Dotenv;
 
 public class IntelliPdM {
     static List<FogDevice> fogDevices = new ArrayList<>();
@@ -46,17 +49,24 @@ public class IntelliPdM {
         boolean trace_flag = false;
         CloudSim.init(userId, calendar, trace_flag);
 
-        try {
-            ProcessBuilder pb = new ProcessBuilder("/home/rishiikesh/Rishiikesh/Sem5/Edge Computing/iFogSim/venv/bin/python", "python_ml/train_cnn.py");
+       try {
+            Dotenv dotenv = Dotenv.load();
+
+            String pythonExec = dotenv.get("PYTHON_EXEC");
+            String cnnScript = dotenv.get("CNN_SCRIPT");
+            String rfScript  = dotenv.get("RF_SCRIPT");
+
+            ProcessBuilder pb = new ProcessBuilder(pythonExec, cnnScript);
             pb.inheritIO();
             pb.start().waitFor();
-            ProcessBuilder pbRf = new ProcessBuilder("/home/rishiikesh/Rishiikesh/Sem5/Edge Computing/iFogSim/venv/bin/python", "python_ml/train_rf.py");
+
+            ProcessBuilder pbRf = new ProcessBuilder(pythonExec, rfScript);
             pbRf.inheritIO();
             pbRf.start().waitFor();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         String appId = "IntelliPdM";
         Application app = createApplication(appId, userId);
 

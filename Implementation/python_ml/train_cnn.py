@@ -5,12 +5,14 @@ from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Input, concatenat
 from keras.models import Model
 import sys
 import joblib
+import os
 
 if len(sys.argv) > 1:
     accumulated_data = joblib.load(sys.argv[1]) 
     df = pd.DataFrame(accumulated_data)
 else:
-    df = pd.read_csv('synthetic_data.csv')
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "synthetic_data.csv"))
+
 
 X_vib = np.array(df['vibration'].apply(lambda x: eval(x) if isinstance(x, str) else x).tolist())
 X_vib = X_vib.reshape((X_vib.shape[0], X_vib.shape[1], 1))

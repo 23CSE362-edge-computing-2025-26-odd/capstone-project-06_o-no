@@ -4,12 +4,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import joblib
 import sys
+import os
 
 if len(sys.argv) > 1:
     accumulated_data = joblib.load(sys.argv[1])
     df = pd.DataFrame(accumulated_data)
 else:
-    df = pd.read_csv('synthetic_data.csv')
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "synthetic_data.csv"))
 
 df['vib_mean'] = df['vibration'].apply(lambda x: np.mean(eval(x) if isinstance(x, str) else x))
 df['vib_std'] = df['vibration'].apply(lambda x: np.std(eval(x) if isinstance(x, str) else x))
