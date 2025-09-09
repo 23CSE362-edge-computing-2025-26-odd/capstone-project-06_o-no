@@ -1,14 +1,26 @@
+# python_ml/predict_rf.py
+import sys, os, json
 import numpy as np
 import joblib
-import json
-import sys
 
-rf = joblib.load('rf_model.joblib')
-with open(sys.argv[1], 'r') as f:
+script_dir = os.path.dirname(__file__)
+model_path = os.path.join(script_dir, "rf_model.pkl")
+
+input_file = sys.argv[1]
+with open(input_file, 'r') as f:
     data = json.load(f)
-vib = np.array(data['vibration'])
-features = np.array([[np.mean(vib), np.std(vib), data['temp'], data['voltage']]])
-prob = rf.predict_proba(features)[0][1]
-fault = rf.predict(features)[0]
-output = {'prob': float(prob), 'fault': int(fault)}
-print(json.dumps(output))
+
+vibration = np.array(data.get('vibration', [0]*100), dtype=float)
+mean_vib = float(np.nanmean(vibration)) if vibration.size>0 else 0.0
+temp = data.get('temp', 50.0)
+if temp is None or (isinstance(temp, float) and np.isnan(temp)): temp = 50.0
+voltage = data.get('voltage', 220.0)
+if voltage is None or (isinstance(voltage, float) and np.isnan(voltage)): voltage = 220.0
+
+X = np.array([[mean_vib, float(temp), float(voltage)]])
+
+model = joblib.load(model_path)
+prob = float(model.predict_proba(X)[0][1])
+fault = int(model.predict(X)[0])
+
+print(json.dumps({"prob": prob, "fault": int(fault)}), flush=True)

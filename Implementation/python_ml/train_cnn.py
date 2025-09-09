@@ -1,36 +1,64 @@
-import numpy as np
-import pandas as pd
-from keras.models import Sequential
-from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Input, concatenate
-from keras.models import Model
-import sys
-import joblib
+# python_ml/train_cnn.py
 import os
+import pandas as pd
+import numpy as np
+import ast
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
 
-if len(sys.argv) > 1:
-    accumulated_data = joblib.load(sys.argv[1]) 
-    df = pd.DataFrame(accumulated_data)
-else:
-    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "synthetic_data.csv"))
+script_dir = os.path.dirname(__file__)
+csv_path = os.path.join(script_dir, "synthetic_data.csv")
 
+df = pd.read_csv(csv_path)
 
-X_vib = np.array(df['vibration'].apply(lambda x: eval(x) if isinstance(x, str) else x).tolist())
-X_vib = X_vib.reshape((X_vib.shape[0], X_vib.shape[1], 1))
-X_temp = df['temp'].values.reshape(-1, 1)
-X_volt = df['voltage'].values.reshape(-1, 1)
+# Safe parser for vibration column
+def safe_parse(v):
+    if isinstance(v, str):
+        try:
+            if v.lower() == "nan":
+                return np.nan
+            return ast.literal_eval(v)  # safe alternative to eval
+        except:
+            return np.nan
+    return v
+
+df['vibration'] = df['vibration'].apply(safe_parse)
+
+# Drop rows where vibration is NaN
+df = df.dropna(subset=['vibration'])
+
+# Convert to numpy
+X = np.array([v for v in df['vibration']]).reshape(-1, 100, 1).astype('float32')
 y = df['label'].values
 
-vib_input = Input(shape=(100, 1))
-conv = Conv1D(64, kernel_size=3, activation='relu')(vib_input)
-pool = MaxPooling1D(2)(conv)
-flat = Flatten()(pool)
-temp_input = Input(shape=(1,))
-volt_input = Input(shape=(1,))
-merged = concatenate([flat, temp_input, volt_input])
-dense = Dense(128, activation='relu')(merged)
-output = Dense(1, activation='sigmoid')(dense)
-model = Model(inputs=[vib_input, temp_input, volt_input], outputs=output)
+# Fill NaNs in X with column means
+inds = np.where(np.isnan(X))
+if len(inds[0]) > 0:
+    col_means = np.nanmean(X, axis=0)  # shape (100,1)
+    for i in range(X.shape[0]):
+        mask = np.isnan(X[i, :, 0])
+        X[i, mask, 0] = col_means[mask, 0]
+
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# CNN model
+model = Sequential([
+    Conv1D(32, kernel_size=3, activation='relu', input_shape=(100, 1)),
+    MaxPooling1D(pool_size=2),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-model.fit([X_vib, X_temp, X_volt], y, epochs=10, batch_size=32, validation_split=0.2)
-model.save('model.h5')
-print("Trained and saved model.h5")
+
+# Train (few epochs for demo)
+model.fit(X_train, y_train, epochs=3, batch_size=32, verbose=1)
+
+# Save model
+model_path = os.path.join(script_dir, "cnn_model.h5")
+model.save(model_path)
+print("CNN model trained and saved to", model_path)
