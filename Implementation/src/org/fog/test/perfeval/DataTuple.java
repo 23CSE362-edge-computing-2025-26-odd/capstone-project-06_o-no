@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Custom Tuple class to include payload for sensor data.
- */
+
 public class DataTuple extends Tuple {
     private Map<String, Object> payload;
     private List<String> destModuleNames;
@@ -37,7 +35,7 @@ public class DataTuple extends Tuple {
     public void setDestModuleNames(List<String> destModuleNames) {
         this.destModuleNames = destModuleNames;
         if (!destModuleNames.isEmpty()) {
-            // Set the first module as the primary destination for compatibility with parent Tuple class
+           
             setDestModuleName(destModuleNames.get(0));
         }
     }

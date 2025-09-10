@@ -9,14 +9,12 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.logging.Logger;
 
-/**
- * Custom Scheduler: Priority-based tuple scheduling (e.g., SENSOR tuples first).
- */
+
 public class CustomTupleScheduler extends TupleScheduler {
     private static final Logger LOGGER = Logger.getLogger(CustomTupleScheduler.class.getName());
     private PriorityQueue<Tuple> tupleQueue;
-    private final double mips; // Store MIPS explicitly
-    private AppModule module; // Reference to the module
+    private final double mips; 
+    private AppModule module; 
 
     public CustomTupleScheduler(double mips, int numberOfPes) {
         super(mips, numberOfPes);
@@ -42,13 +40,12 @@ public class CustomTupleScheduler extends TupleScheduler {
 
             while (!tupleQueue.isEmpty()) {
                 Tuple nextTuple = tupleQueue.peek();
-                // Check if there are enough resources to process the tuple
                 double requestedMips = getCurrentRequestedMips() != null ?
                     getCurrentRequestedMips().stream().mapToDouble(Double::doubleValue).sum() : 0;
                 if (requestedMips < mips) {
                     tupleQueue.poll();
                     
-                    // Call the module's processTupleArrival method if it's one of our custom modules
+                    
                     LOGGER.info("CustomTupleScheduler: Processing tuple " + nextTuple.getTupleType() + " for module " + (module != null ? module.getName() : "null"));
                     if (module != null && module instanceof org.fog.test.perfeval.PreprocessModule) {
                         LOGGER.info("CustomTupleScheduler: Calling PreprocessModule.processTupleArrival");
@@ -67,12 +64,12 @@ public class CustomTupleScheduler extends TupleScheduler {
                     LOGGER.info("Submitted tuple " + nextTuple.getTupleType() + " for execution at time " + org.cloudbus.cloudsim.core.CloudSim.clock());
                     return completionTime;
                 } else {
-                    break; // Insufficient MIPS, keep tuple in queue
+                    break; 
                 }
             }
-            return -1; // Tuple queued but not submitted due to insufficient resources
+            return -1; 
         }
-        return super.cloudletSubmit(cl); // Handle non-tuple cloudlets
+        return super.cloudletSubmit(cl); 
     }
 
     /**
@@ -84,6 +81,20 @@ public class CustomTupleScheduler extends TupleScheduler {
         if (rcl.getCloudlet() instanceof Tuple) {
             Tuple tuple = (Tuple) rcl.getCloudlet();
             LOGGER.info("Finished tuple " + tuple.getTupleType() + " at time " + org.cloudbus.cloudsim.core.CloudSim.clock());
+            
+            if (module != null) {
+                LOGGER.info("CustomTupleScheduler: Triggering processing for finished tuple " + tuple.getTupleType() + " on module " + module.getName());
+                if (module instanceof org.fog.test.perfeval.PreprocessModule) {
+                    LOGGER.info("CustomTupleScheduler: Calling PreprocessModule.processTupleArrival");
+                    ((org.fog.test.perfeval.PreprocessModule) module).processTupleArrival(tuple);
+                } else if (module instanceof org.fog.test.perfeval.EdgeMLModule) {
+                    LOGGER.info("CustomTupleScheduler: Calling EdgeMLModule.processTupleArrival");
+                    ((org.fog.test.perfeval.EdgeMLModule) module).processTupleArrival(tuple);
+                } else if (module instanceof org.fog.test.perfeval.CloudMLModule) {
+                    LOGGER.info("CustomTupleScheduler: Calling CloudMLModule.processTupleArrival");
+                    ((org.fog.test.perfeval.CloudMLModule) module).processTupleArrival(tuple);
+                }
+            }
         }
         super.cloudletFinish(rcl);
     }
@@ -96,11 +107,11 @@ public class CustomTupleScheduler extends TupleScheduler {
     private int getPriority(Tuple tuple) {
         switch (tuple.getTupleType()) {
             case "SENSOR":
-                return 1; // Highest priority
+                return 1; 
             case "PROCESSED_DATA":
                 return 2;
             default:
-                return 3; // Lowest priority
+                return 3;
         }
     }
 }
