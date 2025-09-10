@@ -6,9 +6,7 @@ import org.fog.entities.Actuator;
 import org.fog.entities.Tuple;
 import java.util.logging.Logger;
 
-/**
- * Custom Actuator: Processes STOP tuples and stops corresponding sensor.
- */
+
 public class CustomActuator extends Actuator {
     private static final Logger LOGGER = Logger.getLogger(CustomActuator.class.getName());
 

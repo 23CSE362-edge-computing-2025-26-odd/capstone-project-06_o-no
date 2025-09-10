@@ -15,9 +15,7 @@ import java.util.logging.Logger;
 import org.cloudbus.cloudsim.UtilizationModelFull;
 import org.cloudbus.cloudsim.core.CloudSim;
 
-/**
- * Custom Sensor: Generates synthetic data, can be stopped on fault.
- */
+
 public class CustomSensor extends Sensor {
     private static final Logger LOGGER = Logger.getLogger(CustomSensor.class.getName());
     private Random random = new Random();
@@ -30,48 +28,87 @@ public class CustomSensor extends Sensor {
     @Override
     public void transmit() {
         if (stoppedSensors.getOrDefault(getName(), false)) {
-            LOGGER.warning("Sensor " + getName() + " is stopped due to detected fault. Skipping transmit at time " + CloudSim.clock());
+            LOGGER.warning("Sensor " + getName() + " is stopped due to detected fault. Skipping transmit at time " + String.format("%.2f", CloudSim.clock()));
             return;
         }
 
-        boolean isFault = random.nextDouble() < 0.2;
-        List<Double> vibration = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            double val = isFault ? 2 * Math.sin(2 * i * 0.1) + random.nextGaussian() * 0.5 : Math.sin(i * 0.1) + random.nextGaussian() * 0.2;
-            if (random.nextDouble() < 0.05) val = Double.NaN;
-            vibration.add(val);
-        }
-        double temp = isFault ? random.nextGaussian() * 5 + 70 : random.nextGaussian() * 3 + 50;
-        if (random.nextDouble() < 0.05) temp = Double.NaN;
-        double voltage = isFault ? random.nextGaussian() * 10 + 250 : random.nextGaussian() * 5 + 220;
-        if (random.nextDouble() < 0.05) voltage = Double.NaN;
+        boolean isFault = random.nextDouble() < 0.2; 
+        
+        List<Double> vibration = generateVibrationData(isFault);
+        
+        double temp = isFault ? 
+            random.nextGaussian() * 8 + 75 :  
+            random.nextGaussian() * 5 + 50;   
+        if (random.nextDouble() < 0.05) temp = Double.NaN; 
+        
+        double voltage = isFault ? 
+            random.nextGaussian() * 15 + 240 : 
+            random.nextGaussian() * 8 + 220;  
+        if (random.nextDouble() < 0.05) voltage = Double.NaN; 
 
-        // Simulate mobility: Random latency change
-        setLatency(1.0 + random.nextDouble() * 0.5); // Vary latency for realism
+        setLatency(1.0 + random.nextDouble() * 0.5);
+
+        String name = getName();
+        int machineId = Integer.parseInt(name.split("-")[1]);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("vibration", vibration);
         payload.put("temp", temp);
         payload.put("voltage", voltage);
         payload.put("true_fault", isFault ? 1 : 0);
-        String name = getName();
-        int machineId = Integer.parseInt(name.split("-")[1]);
         payload.put("machine_id", machineId);
+
+        String faultStatus = isFault ? "FAULT" : "NORMAL";
+        String tempStr = Double.isNaN(temp) ? "NaN" : String.format("%.1f°C", temp);
+        String voltageStr = Double.isNaN(voltage) ? "NaN" : String.format("%.1fV", voltage);
+        
+        LOGGER.info("Machine-" + machineId + " sensor reading: " + faultStatus + 
+                   " (temp=" + tempStr + ", voltage=" + voltageStr + 
+                   ", time=" + String.format("%.2f", CloudSim.clock()) + ")");
 
         DataTuple tuple = new DataTuple(getAppId(), FogUtils.generateTupleId(), Tuple.UP, 1000, 1, 800, 0,
             new UtilizationModelFull(), new UtilizationModelFull(), new UtilizationModelFull());
-        tuple.setUserId(getUserId());  // ADD THIS LINE: Set userId to match the sensor's userId
+        tuple.setUserId(getUserId());
         tuple.setTupleType("SENSOR");
         tuple.setPayload(payload);
 
         List<String> destModules = new ArrayList<>();
         destModules.add("Preprocess");
         tuple.setDestModuleNames(destModules);
+        
+        MetricsCollector.recordSensorReading(800.0); 
+        
         send(getGatewayDeviceId(), 0, FogEvents.TUPLE_ARRIVAL, tuple);
-        LOGGER.info("Sensor " + getName() + " transmitted data at time " + CloudSim.clock() + " (true_fault=" + (isFault ? 1 : 0) + ")");
+        
+        LOGGER.info("Machine-" + machineId + " data transmitted to edge preprocessing" + 
+                   (isFault ? " [FAULT CONDITION]" : " [NORMAL OPERATION]"));
+    }
+    
+    private List<Double> generateVibrationData(boolean isFault) {
+        List<Double> vibration = new ArrayList<>();
+        
+        for (int i = 0; i < 100; i++) {
+            double val;
+            if (isFault) {
+                val = 3 * Math.sin(3 * i * 0.1) + 
+                      2 * Math.sin(7 * i * 0.1) + 
+                      random.nextGaussian() * 0.8;
+            } else {
+                val = Math.sin(i * 0.1) + random.nextGaussian() * 0.3;
+            }
+            
+            if (random.nextDouble() < 0.05) {
+                val = Double.NaN;
+            }
+            
+            vibration.add(val);
+        }
+        
+        return vibration;
     }
 
     public static void stopSensor(String sensorName) {
         stoppedSensors.put(sensorName, true);
+        Logger.getLogger(CustomSensor.class.getName()).info("Sensor " + sensorName + " has been stopped due to fault detection");
     }
 }
