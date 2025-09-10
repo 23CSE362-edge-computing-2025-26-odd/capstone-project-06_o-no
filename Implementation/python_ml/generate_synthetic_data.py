@@ -1,9 +1,7 @@
-# python_ml/generate_synthetic_data.py
 import numpy as np
 import pandas as pd
 import os
 
-# Parameters
 num_samples = 1000
 fault_probability = 0.2
 vibration_length = 100
@@ -24,7 +22,6 @@ for _ in range(num_samples):
     else:
         vibration = np.sin(time) + np.random.normal(0, 0.2, vibration_length)
 
-    # ~5% NaNs
     nan_mask = np.random.random(vibration_length) < 0.05
     vibration[nan_mask] = np.nan
     vibration = vibration.tolist()
