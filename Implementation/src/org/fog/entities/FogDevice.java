@@ -119,7 +119,7 @@ public class FogDevice extends PowerDatacenter {
                     + " : Error - this entity has no PEs. Therefore, can't process any Cloudlets.");
         }
         // stores id of this class
-        getCharacteristics().setId(super.getId());
+        // getCharacteristics().setId(super.getId()); // Commented out due to access restriction
 
         applicationMap = new HashMap<String, Application>();
         appToModulesMap = new HashMap<String, List<String>>();
@@ -206,7 +206,7 @@ public class FogDevice extends PowerDatacenter {
         }
 
 
-        getCharacteristics().setId(super.getId());
+        // getCharacteristics().setId(super.getId()); // Commented out due to access restriction
 
         applicationMap = new HashMap<String, Application>();
         appToModulesMap = new HashMap<String, List<String>>();
@@ -684,6 +684,12 @@ public class FogDevice extends PowerDatacenter {
 		}*/
         Logger.debug(getName(), "Received tuple " + tuple.getCloudletId() + "with tupleType = " + tuple.getTupleType() + "\t| Source : " +
                 CloudSim.getEntityName(ev.getSource()) + "|Dest : " + CloudSim.getEntityName(ev.getDestination()));
+        
+        // Add debug logging for tuple routing
+        System.out.println("FogDevice " + getName() + " received tuple " + tuple.getTupleType() + " from " + 
+                          CloudSim.getEntityName(ev.getSource()) + " at time " + CloudSim.clock());
+        System.out.println("Tuple destModuleName: " + tuple.getDestModuleName() + ", appId: " + tuple.getAppId());
+        System.out.println("appToModulesMap for " + tuple.getAppId() + ": " + appToModulesMap.get(tuple.getAppId()));
 		
 		/*if(CloudSim.getEntityName(ev.getSource()).equals("drone_0")||CloudSim.getEntityName(ev.getDestination()).equals("drone_0"))
 			System.out.println(CloudSim.clock()+" "+getName()+" Received tuple "+tuple.getCloudletId()+" with tupleType = "+tuple.getTupleType()+"\t| Source : "+
@@ -719,15 +725,19 @@ public class FogDevice extends PowerDatacenter {
         }
 
         if (appToModulesMap.containsKey(tuple.getAppId())) {
+            System.out.println("FogDevice " + getName() + ": Found app " + tuple.getAppId() + " in appToModulesMap");
             if (appToModulesMap.get(tuple.getAppId()).contains(tuple.getDestModuleName())) {
+                System.out.println("FogDevice " + getName() + ": Found module " + tuple.getDestModuleName() + " for app " + tuple.getAppId());
                 int vmId = -1;
                 for (Vm vm : getHost().getVmList()) {
                     if (((AppModule) vm).getName().equals(tuple.getDestModuleName()))
                         vmId = vm.getId();
                 }
+                System.out.println("FogDevice " + getName() + ": Found VM ID " + vmId + " for module " + tuple.getDestModuleName());
                 if (vmId < 0
                         || (tuple.getModuleCopyMap().containsKey(tuple.getDestModuleName()) &&
                         tuple.getModuleCopyMap().get(tuple.getDestModuleName()) != vmId)) {
+                    System.out.println("FogDevice " + getName() + ": VM allocation failed for module " + tuple.getDestModuleName());
                     return;
                 }
                 tuple.setVmId(vmId);
@@ -735,6 +745,7 @@ public class FogDevice extends PowerDatacenter {
 
                 updateTimingsOnReceipt(tuple);
 
+                System.out.println("FogDevice " + getName() + ": Executing tuple for module " + tuple.getDestModuleName());
                 executeTuple(ev, tuple.getDestModuleName());
             } else if (tuple.getDestModuleName() != null) {
                 if (tuple.getDirection() == Tuple.UP)
@@ -1082,6 +1093,10 @@ public class FogDevice extends PowerDatacenter {
 
     public List<String> getPlacedAppModulesPerApplication(String appId) {
         return appToModulesMap.get(appId);
+    }
+
+    public Map<String, List<String>> getAppToModulesMap() {
+        return appToModulesMap;
     }
 
     public void removeChild(int childId) {

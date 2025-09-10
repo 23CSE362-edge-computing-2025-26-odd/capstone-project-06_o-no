@@ -11,14 +11,20 @@ with open(input_file, 'r') as f:
     data = json.load(f)
 
 vibration = np.array(data.get('vibration', [0]*100)).reshape(1, 100, 1).astype('float32')
+temp = np.array([[data.get('temp', 50.0)]]).astype('float32')
+voltage = np.array([[data.get('voltage', 220.0)]]).astype('float32')
 
 # handle NaNs by replacing with 0 (or better, mean) for predict
 if np.isnan(vibration).any():
     nan_mask = np.isnan(vibration)
     vibration[nan_mask] = 0.0
+if np.isnan(temp).any():
+    temp = np.array([[50.0]])
+if np.isnan(voltage).any():
+    voltage = np.array([[220.0]])
 
 model = load_model(model_path)
-pred = model.predict(vibration)
+pred = model.predict([vibration, temp, voltage])
 prob = float(pred[0][0])
 fault = 1 if prob > 0.5 else 0
 

@@ -46,7 +46,7 @@ public class Monitor extends SimEntity {
     }
 
     private void checkAndScale() {
-        for (FogDevice fd : new java.util.ArrayList<FogDevice>(IntelliPdM.fogDevices)) {
+        for (FogDevice fd : new java.util.ArrayList<>(IntelliPdM.fogDevices)) {
             if (fd.getName().startsWith("edge")) {
                 double utilization = fd.getHost().getUtilizationOfCpu(); // Check CPU load
                 if (utilization > loadThreshold) {

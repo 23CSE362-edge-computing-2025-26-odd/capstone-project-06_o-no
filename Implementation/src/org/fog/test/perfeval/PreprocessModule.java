@@ -24,12 +24,18 @@ public class PreprocessModule extends AppModule {
     public PreprocessModule(int id, String name, String appId, int userId, int mips, int ram, long bw, long size, GeoLocation geoLocation, int hostDeviceId) {
         super(id, name, appId, userId, mips, ram, bw, size, "Xen", new CustomTupleScheduler(mips, 1), new HashMap<>());
         this.hostDeviceId = hostDeviceId;
+        // Set the module reference in the scheduler
+        ((CustomTupleScheduler) getCloudletScheduler()).setModule(this);
     }
 
+
     protected void processTupleArrival(Tuple tuple) {
+        LOGGER.info("PreprocessModule received tuple at time " + CloudSim.clock() + ": " + tuple.getTupleType());
         if (tuple instanceof DataTuple) {
             DataTuple dt = (DataTuple) tuple;
             Map<String, Object> data = dt.getPayload();
+            LOGGER.info("PreprocessModule processing data with machine_id: " + data.get("machine_id") + ", true_fault: " + data.get("true_fault"));
+            
             // Fill missing values
             @SuppressWarnings("unchecked")
             List<Double> vibration = (List<Double>) data.get("vibration");
@@ -51,6 +57,7 @@ public class PreprocessModule extends AppModule {
             // Forward to EdgeML
             DataTuple edgeTuple = new DataTuple(getAppId(), FogUtils.generateTupleId(), Tuple.UP, 1000, 1, 1000, 1000,
                     new UtilizationModelFull(), new UtilizationModelFull(), new UtilizationModelFull());
+            edgeTuple.setUserId(getUserId());  // ADD THIS LINE
             edgeTuple.setPayload(new HashMap<>(data));
             edgeTuple.setTupleType("PROCESSED_TO_EDGE");
             edgeTuple.setDestModuleName("EdgeML");
@@ -59,14 +66,21 @@ public class PreprocessModule extends AppModule {
             // Forward to CloudML
             DataTuple cloudTuple = new DataTuple(getAppId(), FogUtils.generateTupleId(), Tuple.UP, 1000, 1, 1000, 1000,
                     new UtilizationModelFull(), new UtilizationModelFull(), new UtilizationModelFull());
+            cloudTuple.setUserId(getUserId());  // ADD THIS LINE
             cloudTuple.setPayload(new HashMap<>(data));
             cloudTuple.setTupleType("PROCESSED_TO_CLOUD");
             cloudTuple.setDestModuleName("CloudML");
             sendTuple(cloudTuple, "CloudML");
+        } else {
+            LOGGER.warning("PreprocessModule received non-DataTuple: " + tuple.getClass().getSimpleName());
         }
     }
 
     private void sendTuple(DataTuple tuple, String destModule) {
-        ((FogDevice) CloudSim.getEntity(hostDeviceId)).send(hostDeviceId, 0.0, FogEvents.TUPLE_ARRIVAL, tuple);
+        // Set the destination module name for proper routing
+        tuple.setDestModuleName(destModule);
+        // Send to the host device which will route to the appropriate module
+        CloudSim.send(hostDeviceId, hostDeviceId, 0.0, FogEvents.TUPLE_ARRIVAL, tuple);
+        LOGGER.info("PreprocessModule sent tuple to " + destModule + " at time " + CloudSim.clock());
     }
 }

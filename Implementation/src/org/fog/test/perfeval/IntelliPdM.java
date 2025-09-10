@@ -1,7 +1,6 @@
 package org.fog.test.perfeval;
 
-import org.apache.commons.math3.util.Pair;
-import org.cloudbus.cloudsim.Log;
+import org.cloudbus.cloudsim.UtilizationModelFull;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.Host;
 import org.cloudbus.cloudsim.Pe;
@@ -20,8 +19,6 @@ import org.fog.entities.FogDeviceCharacteristics;
 import org.fog.entities.Sensor;
 import org.fog.entities.Tuple;
 import org.fog.placement.Controller;
-import org.fog.placement.ModuleMapping;
-import org.fog.placement.ModulePlacementEdgewards;
 import org.fog.policy.AppModuleAllocationPolicy;
 import org.fog.scheduler.StreamOperatorScheduler;
 import org.fog.utils.FogLinearPowerModel;
@@ -36,15 +33,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.data.category.DefaultCategoryDataset;
 
 import javax.swing.table.DefaultTableModel;
 
@@ -79,7 +74,7 @@ public class IntelliPdM {
     public static void main(String[] args) {
         loadConfig();
 
-        Log.enable();
+        org.cloudbus.cloudsim.Log.enable();
         int userId = FogUtils.USER_ID;
         Calendar calendar = Calendar.getInstance();
         boolean trace_flag = false;
@@ -127,22 +122,26 @@ public class IntelliPdM {
 
         createFogDevices(userId, appId);
 
-        ModuleMapping moduleMapping = ModuleMapping.createModuleMapping();
-        moduleMapping.addModuleToDevice("Preprocess", "edge-0");
-        moduleMapping.addModuleToDevice("EdgeML", "edge-0");
-        moduleMapping.addModuleToDevice("CloudML", "cloud");
-
         Controller controller = new Controller("controller", fogDevices, sensors, actuators);
 
-        try {
-            controller.submitApplication(app, 0, new ModulePlacementEdgewards(fogDevices, sensors, actuators, app, moduleMapping));
-        } catch (Exception e) {
-            LOGGER.severe("Failed to submit application: " + e.getMessage());
-            e.printStackTrace();
-            return;
+        // Manually set application on all devices (no automatic placement)
+        Map<String, Application> appMap = new HashMap<>();
+        appMap.put(appId, app);
+        for (FogDevice fd : fogDevices) {
+            fd.setApplicationMap(appMap);
+            // Initialize only if absent to avoid wiping previously registered modules
+            if (!fd.getAppToModulesMap().containsKey(appId)) {
+                fd.getAppToModulesMap().put(appId, new ArrayList<>());
+            }
+        }
+
+        // Add all entities to CloudSim
+        for (FogDevice fd : fogDevices) {
+            CloudSim.addEntity(fd);
         }
 
         Monitor monitor = new Monitor("monitor", monitorInterval, loadThreshold, controller);
+        CloudSim.addEntity(monitor);
         monitor.startEntity();
 
         CloudSim.startSimulation();
@@ -156,7 +155,7 @@ public class IntelliPdM {
         printMetrics();
         LOGGER.info("Simulation completed successfully.");
 
-        SwingUtilities.invokeLater(() -> showGuiMetrics());
+        // SwingUtilities.invokeLater(() -> showGuiMetrics()); // Disabled GUI for now
     }
 
     private static void loadConfig() {
@@ -195,6 +194,20 @@ public class IntelliPdM {
         }
         fogDevices.add(cloud);
 
+        // Manually place CloudML on cloud
+        CloudMLModule cloudML = new CloudMLModule(FogUtils.generateEntityId(), "CloudML", appId, userId, 4000, 4000, 10000, 1000, null, cloud.getId());
+        if (cloud.getVmAllocationPolicy().allocateHostForVm(cloudML, cloud.getHost())) {
+            cloud.getVmList().add(cloudML);
+            // Register the module with the FogDevice using the proper method
+            if (!cloud.getAppToModulesMap().containsKey(appId)) {
+                cloud.getAppToModulesMap().put(appId, new ArrayList<>());
+            }
+            cloud.getAppToModulesMap().get(appId).add("CloudML");
+            LOGGER.info("CloudML module registered with cloud device");
+        } else {
+            LOGGER.warning("Failed to allocate CloudML module on cloud");
+        }
+
         for (int i = 0; i < initialNumEdges; i++) {
             addEdgeDevice(cloud, i, appId, userId);
         }
@@ -213,7 +226,7 @@ public class IntelliPdM {
             actuator.setGatewayDeviceId(edge.getId());
             actuator.setLatency(1.0);
             edge.getChildToLatencyMap().put(actuator.getId(), 1.0);
-            edge.getAssociatedActuatorIds().add(new Pair<>(actuator.getId(), 1.0));
+            edge.getAssociatedActuatorIds().add(new org.apache.commons.math3.util.Pair<>(actuator.getId(), 1.0));
             actuators.add(actuator);
         }
 
@@ -226,7 +239,7 @@ public class IntelliPdM {
     }
 
     public static void addEdgeDevice(FogDevice cloud, int edgeId, String appId, int userId) {
-        FogDevice edge = createFogDevice("edge-" + edgeId, 2800, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333, 0.01);
+        FogDevice edge = createFogDevice("edge-" + edgeId, 5000, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333, 0.01);
         if (edge == null) {
             LOGGER.severe("Failed to create edge device edge-" + edgeId + ". Skipping.");
             return;
@@ -235,9 +248,16 @@ public class IntelliPdM {
         cloud.getChildToLatencyMap().put(edge.getId(), 0.01);
         fogDevices.add(edge);
 
+        // Manually place modules on edge
         PreprocessModule preprocess = new PreprocessModule(FogUtils.generateEntityId(), "Preprocess", appId, userId, 1000, 1000, 10000, 1000, null, edge.getId());
         if (edge.getVmAllocationPolicy().allocateHostForVm(preprocess, edge.getHost())) {
             edge.getVmList().add(preprocess);
+            // Register the module with the FogDevice
+            if (!edge.getAppToModulesMap().containsKey(appId)) {
+                edge.getAppToModulesMap().put(appId, new ArrayList<>());
+            }
+            edge.getAppToModulesMap().get(appId).add("Preprocess");
+            LOGGER.info("Preprocess module registered with edge-" + edgeId);
         } else {
             LOGGER.warning("Failed to allocate Preprocess module on edge-" + edgeId);
         }
@@ -245,11 +265,20 @@ public class IntelliPdM {
         EdgeMLModule edgeML = new EdgeMLModule(FogUtils.generateEntityId(), "EdgeML", appId, userId, 2000, 2000, 10000, 1000, null, edge.getId());
         if (edge.getVmAllocationPolicy().allocateHostForVm(edgeML, edge.getHost())) {
             edge.getVmList().add(edgeML);
+            // Register the module with the FogDevice
+            if (!edge.getAppToModulesMap().containsKey(appId)) {
+                edge.getAppToModulesMap().put(appId, new ArrayList<>());
+            }
+            edge.getAppToModulesMap().get(appId).add("EdgeML");
+            LOGGER.info("EdgeML module registered with edge-" + edgeId);
         } else {
             LOGGER.warning("Failed to allocate EdgeML module on edge-" + edgeId);
         }
 
         LOGGER.info("Dynamically added new edge device: " + edge.getName() + " with modules placed.");
+
+        // Add to CloudSim (safe due to modified CloudSim)
+        CloudSim.addEntity(edge);
     }
 
     private static FogDevice createFogDevice(String nodeName, long mips, int ram, long upBw, long downBw, int level, double ratePerMips, double busyPower, double idlePower, double uplinkLatency) {
@@ -291,9 +320,10 @@ public class IntelliPdM {
 
     private static Application createApplication(String appId, int userId) {
         Application application = Application.createApplication(appId, userId);
-        application.addAppModule("Preprocess", 1000);
-        application.addAppModule("EdgeML", 2000);
-        application.addAppModule("CloudML", 4000);
+        // Adjusted to match expected addAppModule signature: name, ram, mips, bw
+        application.addAppModule("Preprocess", 1000, 1000, 10000);
+        application.addAppModule("EdgeML", 2000, 2000, 10000);
+        application.addAppModule("CloudML", 4000, 4000, 10000);
 
         application.addAppEdge("SENSOR", "Preprocess", 100.0, 200.0, "SENSOR", Tuple.UP, AppEdge.SENSOR);
         application.addAppEdge("Preprocess", "EdgeML", 500.0, 100.0, "PROCESSED_TO_EDGE", Tuple.UP, AppEdge.MODULE);
@@ -326,55 +356,22 @@ public class IntelliPdM {
     }
 
     private static void printMetrics() {
-        Log.printLine("Simulation time: " + CloudSim.clock());
+        org.cloudbus.cloudsim.Log.printLine("Simulation time: " + CloudSim.clock());
         double totalEnergy = 0;
         for (FogDevice fd : fogDevices) {
-            Log.printLine(fd.getName() + " energy: " + fd.getEnergyConsumption());
+            org.cloudbus.cloudsim.Log.printLine(fd.getName() + " energy: " + fd.getEnergyConsumption());
             totalEnergy += fd.getEnergyConsumption();
         }
-        Log.printLine("Total energy: " + totalEnergy);
-        Log.printLine("Total network usage: " + MetricsCollector.getTotalNetworkUsage());
-        Log.printLine("Total faults detected (Edge): " + MetricsCollector.getEdgeFaults());
-        Log.printLine("Total faults detected (Cloud): " + MetricsCollector.getCloudFaults());
-        Log.printLine("Prediction accuracy (Edge): " + MetricsCollector.getEdgeAccuracy());
-        Log.printLine("Prediction accuracy (Cloud): " + MetricsCollector.getCloudAccuracy());
-        Log.printLine("Number of stopped machines: " + MetricsCollector.getStoppedMachines());
+        org.cloudbus.cloudsim.Log.printLine("Total energy: " + totalEnergy);
+        org.cloudbus.cloudsim.Log.printLine("Total network usage: " + MetricsCollector.getTotalNetworkUsage());
+        org.cloudbus.cloudsim.Log.printLine("Total faults detected (Edge): " + MetricsCollector.getEdgeFaults());
+        org.cloudbus.cloudsim.Log.printLine("Total faults detected (Cloud): " + MetricsCollector.getCloudFaults());
+        org.cloudbus.cloudsim.Log.printLine("Prediction accuracy (Edge): " + MetricsCollector.getEdgeAccuracy());
+        org.cloudbus.cloudsim.Log.printLine("Prediction accuracy (Cloud): " + MetricsCollector.getCloudAccuracy());
+        org.cloudbus.cloudsim.Log.printLine("Number of stopped machines: " + MetricsCollector.getStoppedMachines());
         LOGGER.info("Metrics printed.");
     }
 
-    private static void showGuiMetrics() {
-        JFrame frame = new JFrame("IntelliPdM Metrics");
-        frame.setSize(800, 600);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        String[] columns = {"Metric", "Value"};
-        Object[][] data = {
-            {"Simulation Time", CloudSim.clock()},
-            {"Total Energy", MetricsCollector.getTotalEnergy(fogDevices)},
-            {"Total Network Usage", MetricsCollector.getTotalNetworkUsage()},
-            {"Edge Faults Detected", MetricsCollector.getEdgeFaults()},
-            {"Cloud Faults Detected", MetricsCollector.getCloudFaults()},
-            {"Edge Accuracy", MetricsCollector.getEdgeAccuracy()},
-            {"Cloud Accuracy", MetricsCollector.getCloudAccuracy()},
-            {"Stopped Machines", MetricsCollector.getStoppedMachines()},
-            {"Dynamic Edges Added", fogDevices.size() - 1 - initialNumEdges}
-        };
-        JTable table = new JTable(new DefaultTableModel(data, columns));
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        for (FogDevice fd : fogDevices) {
-            dataset.addValue(fd.getEnergyConsumption(), "Energy", fd.getName());
-        }
-        JFreeChart barChart = ChartFactory.createBarChart(
-            "Energy Consumption per Device", "Device", "Energy (W)",
-            dataset
-        );
-        ChartPanel chartPanel = new ChartPanel(barChart);
-        chartPanel.setPreferredSize(new Dimension(400, 300));
-
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, chartPanel);
-        frame.add(splitPane);
-        frame.setVisible(true);
-    }
+    // GUI metrics disabled for now due to missing JFreeChart dependencies
+    // private static void showGuiMetrics() { ... }
 }

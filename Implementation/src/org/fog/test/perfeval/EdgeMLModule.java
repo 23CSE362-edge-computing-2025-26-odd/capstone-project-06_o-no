@@ -27,15 +27,19 @@ import java.util.logging.Logger;
  */
 public class EdgeMLModule extends AppModule {
     private static final Logger LOGGER = Logger.getLogger(EdgeMLModule.class.getName());
-    private String modelPath = IntelliPdM.projectDirPath + "/python_ml/model.h5";
+    private String modelPath = IntelliPdM.projectDirPath + "/python_ml/cnn_model.h5";
     private int hostDeviceId;
 
     public EdgeMLModule(int id, String name, String appId, int userId, int mips, int ram, long bw, long size, GeoLocation geoLocation, int hostDeviceId) {
         super(id, name, appId, userId, mips, ram, bw, size, "Xen", new CustomTupleScheduler(mips, 1), new HashMap<>());
         this.hostDeviceId = hostDeviceId;
+        // Set the module reference in the scheduler
+        ((CustomTupleScheduler) getCloudletScheduler()).setModule(this);
     }
 
+
     protected void processTupleArrival(Tuple tuple) {
+        LOGGER.info("EdgeMLModule received tuple at time " + CloudSim.clock() + ": " + tuple.getTupleType());
         if (tuple instanceof DataTuple) {
             DataTuple dt = (DataTuple) tuple;
             Map<String, Object> data = dt.getPayload();
@@ -83,6 +87,7 @@ public class EdgeMLModule extends AppModule {
                     String actuatorName = "actuator-" + machineId;
                     Actuator actuator = IntelliPdM.actuators.stream().filter(a -> a.getName().equals(actuatorName)).findFirst().get();
                     DataTuple stopTuple = new DataTuple(getAppId(), FogUtils.generateTupleId(), Tuple.ACTUATOR, 100, 1, 100, 0, new UtilizationModelFull(), new UtilizationModelFull(), new UtilizationModelFull());
+                    stopTuple.setUserId(getUserId());  // ADD THIS LINE
                     stopTuple.setTupleType("STOP_ACTUATOR");
                     stopTuple.setActuatorId(actuator.getId());
                     sendTuple(stopTuple, "STOP_ACTUATOR");
@@ -109,6 +114,10 @@ public class EdgeMLModule extends AppModule {
     }
 
     private void sendTuple(DataTuple tuple, String destModule) {
-        ((FogDevice) CloudSim.getEntity(hostDeviceId)).send(hostDeviceId, 0.0, FogEvents.TUPLE_ARRIVAL, tuple);
+        // Set the destination module name for proper routing
+        tuple.setDestModuleName(destModule);
+        // Send to the host device which will route to the appropriate actuator
+        CloudSim.send(hostDeviceId, hostDeviceId, 0.0, FogEvents.TUPLE_ARRIVAL, tuple);
+        LOGGER.info("EdgeMLModule sent tuple to " + destModule + " at time " + CloudSim.clock());
     }
 }

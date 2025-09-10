@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
+
+import org.cloudbus.cloudsim.UtilizationModelFull;
 import org.cloudbus.cloudsim.core.CloudSim;
 
 /**
@@ -57,10 +59,11 @@ public class CustomSensor extends Sensor {
         payload.put("machine_id", machineId);
 
         DataTuple tuple = new DataTuple(getAppId(), FogUtils.generateTupleId(), Tuple.UP, 1000, 1, 800, 0,
-                new org.cloudbus.cloudsim.UtilizationModelFull(), new org.cloudbus.cloudsim.UtilizationModelFull(),
-                new org.cloudbus.cloudsim.UtilizationModelFull());
+            new UtilizationModelFull(), new UtilizationModelFull(), new UtilizationModelFull());
+        tuple.setUserId(getUserId());  // ADD THIS LINE: Set userId to match the sensor's userId
         tuple.setTupleType("SENSOR");
         tuple.setPayload(payload);
+
         List<String> destModules = new ArrayList<>();
         destModules.add("Preprocess");
         tuple.setDestModuleNames(destModules);
