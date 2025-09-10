@@ -12,9 +12,7 @@ import org.fog.utils.FogUtils;
 
 import java.util.logging.Logger;
 
-/**
- * Monitor Entity: Periodically checks load and dynamically adds edges.
- */
+
 public class Monitor extends SimEntity {
     private static final Logger LOGGER = Logger.getLogger(Monitor.class.getName());
     private double interval;
@@ -27,20 +25,20 @@ public class Monitor extends SimEntity {
         this.interval = interval;
         this.loadThreshold = loadThreshold;
         this.controller = controller;
-        this.nextEdgeId = IntelliPdM.initialNumEdges; // Start from next ID
+        this.nextEdgeId = IntelliPdM.initialNumEdges; 
     }
 
     @Override
     public void startEntity() {
-        sendNow(getId(), 0); // Start monitoring
+        sendNow(getId(), 0); 
     }
 
     @Override
     public void processEvent(SimEvent ev) {
         switch (ev.getTag()) {
-            case 0: // Monitor event
+            case 0: 
                 checkAndScale();
-                send(getId(), interval, 0); // Schedule next check
+                send(getId(), interval, 0);
                 break;
         }
     }
@@ -48,28 +46,26 @@ public class Monitor extends SimEntity {
     private void checkAndScale() {
         for (FogDevice fd : new java.util.ArrayList<>(IntelliPdM.fogDevices)) {
             if (fd.getName().startsWith("edge")) {
-                double utilization = fd.getHost().getUtilizationOfCpu(); // Check CPU load
+                double utilization = fd.getHost().getUtilizationOfCpu(); 
                 if (utilization > loadThreshold) {
                     LOGGER.warning("Edge " + fd.getName() + " overloaded (util=" + utilization + ") at time " + CloudSim.clock() + ". Adding new edge.");
-                    FogDevice cloud = IntelliPdM.fogDevices.get(0); // Assume index 0 is cloud
+                    FogDevice cloud = IntelliPdM.fogDevices.get(0); 
                     IntelliPdM.addEdgeDevice(cloud, nextEdgeId++, "IntelliPdM", FogUtils.USER_ID);
-                    // Migrate some sensors (e.g., half)
                     migrateSensors(fd);
                 }
             }
         }
-        MetricsCollector.updateNetworkUsage(); // Update metrics
+        MetricsCollector.updateNetworkUsage(100.0); 
     }
 
     private void migrateSensors(FogDevice oldEdge) {
         int migrated = 0;
-        FogDevice newEdge = IntelliPdM.fogDevices.get(IntelliPdM.fogDevices.size() - 1); // Last added
+        FogDevice newEdge = IntelliPdM.fogDevices.get(IntelliPdM.fogDevices.size() - 1); 
         for (Sensor sensor : IntelliPdM.sensors) {
             if (sensor.getGatewayDeviceId() == oldEdge.getId() && migrated < IntelliPdM.numMachines / 2) {
                 sensor.setGatewayDeviceId(newEdge.getId());
                 newEdge.getChildToLatencyMap().put(sensor.getId(), 1.0);
                 oldEdge.getChildToLatencyMap().remove(sensor.getId());
-                // Migrate corresponding actuator
                 String actName = sensor.getName().replace("sensor", "actuator");
                 for (Actuator act : IntelliPdM.actuators) {
                     if (act.getName().equals(actName)) {
@@ -77,7 +73,6 @@ public class Monitor extends SimEntity {
                         newEdge.getChildToLatencyMap().put(act.getId(), 1.0);
                         oldEdge.getChildToLatencyMap().remove(act.getId());
 
-                        // Remove from old edge's associatedActuatorIds
                         Pair<Integer, Double> toRemove = null;
                         for (Pair<Integer, Double> p : oldEdge.getAssociatedActuatorIds()) {
                             if (p.getKey() == act.getId()) {
@@ -89,7 +84,6 @@ public class Monitor extends SimEntity {
                             oldEdge.getAssociatedActuatorIds().remove(toRemove);
                         }
 
-                        // Add to new edge's associatedActuatorIds
                         newEdge.getAssociatedActuatorIds().add(new Pair<>(act.getId(), 1.0));
 
                         break;
