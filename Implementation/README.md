@@ -28,6 +28,9 @@ java intellipdm.JavaIntelliPdM
 # Navigate to Implementation directory
 cd Implementation
 
+# Install Python dependencies
+pip install -r requirements.txt
+
 # Run fog computing simulation
 python fog_computing_simulation.py
 
@@ -170,6 +173,7 @@ scaler_path=python_ml/ann_scaler.joblib
 ```
 Implementation/
 ├── README.md                        # This file
+├── requirements.txt                 # Python dependencies
 ├── config.properties               # Configuration file
 │
 ├── src/intellipdm/                 # Java implementation
@@ -254,7 +258,7 @@ javac -cp . intellipdm/*.java
 ### Python Setup
 ```bash
 # Install Python dependencies
-pip install tensorflow scikit-learn pandas numpy joblib
+pip install -r requirements.txt
 
 # Verify installation
 python -c "import tensorflow, sklearn, pandas, numpy; print('All libraries installed')"
