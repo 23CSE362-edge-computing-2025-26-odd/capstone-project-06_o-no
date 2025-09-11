@@ -4,3 +4,4 @@
 *.properties
 *.log
 *.pkl
+venv/

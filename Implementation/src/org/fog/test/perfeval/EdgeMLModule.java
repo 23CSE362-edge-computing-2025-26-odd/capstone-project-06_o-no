@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 
 public class EdgeMLModule extends AppModule {
     private static final Logger LOGGER = Logger.getLogger(EdgeMLModule.class.getName());
-    private String modelPath = IntelliPdM.projectDirPath + "/python_ml/cnn_model.h5";
+    private String modelPath = IntelliPdM.projectDirPath + "/python_ml/ann_model.keras";
     private int hostDeviceId;
 
     public EdgeMLModule(int id, String name, String appId, int userId, int mips, int ram, long bw, long size, CustomTupleScheduler scheduler, int hostDeviceId) {
@@ -92,7 +92,7 @@ public class EdgeMLModule extends AppModule {
         }
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(IntelliPdM.pythonExec, "python_ml/predict_cnn.py", tempFile);
+            ProcessBuilder pb = new ProcessBuilder(IntelliPdM.pythonExec, "python_ml/predict_ann.py", tempFile);
             pb.directory(new File(IntelliPdM.projectDirPath));
             Process p = pb.start();
             BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -104,7 +104,7 @@ public class EdgeMLModule extends AppModule {
                 double prob = ((Number) result.get("prob")).doubleValue();
                 int fault = ((Number) result.get("fault")).intValue();
                 double latency = ((Number) result.getOrDefault("latency_ms", 0.0)).doubleValue();
-                String method = (String) result.getOrDefault("method", "cnn");
+                String method = (String) result.getOrDefault("method", "ann");
 
                 double totalLatency = (CloudSim.clock() - startTime) * 1000; 
                 LOGGER.info("EdgeML Prediction for Machine-" + machineId + 
@@ -122,7 +122,7 @@ public class EdgeMLModule extends AppModule {
                 }
             }
         } catch (Exception e) {
-            LOGGER.severe("CNN prediction failed: " + e.getMessage());
+            LOGGER.severe("ANN prediction failed: " + e.getMessage());
             handleFallbackPrediction(data, machineId, trueFault, startTime);
         } finally {
             new File(tempFile).delete(); 

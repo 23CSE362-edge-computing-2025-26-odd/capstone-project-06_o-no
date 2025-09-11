@@ -104,21 +104,21 @@ public class IntelliPdM {
             if (!projectDir.exists() || !projectDir.isDirectory()) {
                 throw new IOException("Project directory does not exist: " + projectDirPath);
             }
-            File cnnScript = new File(projectDir, "python_ml/train_cnn.py");
+            File annScript = new File(projectDir, "python_ml/train_ann.py");
             File rfScript = new File(projectDir, "python_ml/train_rf.py");
-            if (!cnnScript.exists() || !rfScript.exists()) {
-                throw new IOException("Python scripts missing: " + cnnScript.getPath() + " or " + rfScript.getPath());
+            if (!annScript.exists() || !rfScript.exists()) {
+                throw new IOException("Python scripts missing: " + annScript.getPath() + " or " + rfScript.getPath());
             }
 
-            ProcessBuilder pb = new ProcessBuilder(pythonExec, "python_ml/train_cnn.py");
+            ProcessBuilder pb = new ProcessBuilder(pythonExec, "python_ml/train_ann.py");
             pb.directory(projectDir);
             pb.inheritIO();
             Process p = pb.start();
             int exitCode = p.waitFor();
             if (exitCode == 0) {
-                LOGGER.info("CNN model trained successfully.");
+                LOGGER.info("ANN model trained successfully.");
             } else {
-                LOGGER.warning("CNN model training failed with exit code: " + exitCode);
+                LOGGER.warning("ANN model training failed with exit code: " + exitCode);
             }
 
             ProcessBuilder pbRf = new ProcessBuilder(pythonExec, "python_ml/train_rf.py");
