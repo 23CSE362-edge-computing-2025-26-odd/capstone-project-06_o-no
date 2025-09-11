@@ -72,11 +72,11 @@ public class IntelliPdM {
         loadConfig();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n" + "█".repeat(100));
-            System.out.println("█" + " ".repeat(98) + "█");
-            System.out.println("█" + " ".repeat(25) + "INTELLIPDM PREDICTIVE MAINTENANCE RESULTS" + " ".repeat(31) + "█");
-            System.out.println("█" + " ".repeat(98) + "█");
-            System.out.println("█".repeat(100));
+            System.out.println("\n" + "".repeat(100));
+            System.out.println(" " + " ".repeat(98) + " ");
+            System.out.println(" " + " ".repeat(25) + "INTELLIPDM PREDICTIVE MAINTENANCE RESULTS" + " ".repeat(31) + "█");
+            System.out.println(" " + " ".repeat(98) + " ");
+            System.out.println(" ".repeat(100));
             
             MetricsCollector.printDetailedMetrics();
             
@@ -86,11 +86,11 @@ public class IntelliPdM {
             System.out.println("  Automatic model updates from cloud to edge");
             System.out.println("  Predictive maintenance prevented machine failures");
             
-            System.out.println("█".repeat(100));
-            System.out.println("█" + " ".repeat(98) + "█");
-            System.out.println("█" + " ".repeat(30) + "END OF INTELLIPDM ENHANCED RESULTS" + " ".repeat(32) + "█");
-            System.out.println("█" + " ".repeat(98) + "█");
-            System.out.println("█".repeat(100));
+            System.out.println(" ".repeat(100));
+            System.out.println(" " + " ".repeat(98) + " ");
+            System.out.println(" " + " ".repeat(30) + "END OF INTELLIPDM ENHANCED RESULTS" + " ".repeat(32) + "█");
+            System.out.println(" " + " ".repeat(98) + " ");
+            System.out.println(" ".repeat(100));
         }));
 
         org.cloudbus.cloudsim.Log.enable();
@@ -378,14 +378,14 @@ public class IntelliPdM {
     }
 
     private static void printMetrics() {
-        System.out.println("\n" + "█".repeat(100));
-        System.out.println("█" + " ".repeat(98) + "█");
-        System.out.println("█" + " ".repeat(25) + "INTELLIPDM PREDICTIVE MAINTENANCE RESULTS" + " ".repeat(31) + "█");
-        System.out.println("█" + " ".repeat(98) + "█");
-        System.out.println("█".repeat(100));
+        System.out.println("\n" + " ".repeat(100));
+        System.out.println(" " + " ".repeat(98) + " ");
+        System.out.println(" " + " ".repeat(25) + "INTELLIPDM PREDICTIVE MAINTENANCE RESULTS" + " ".repeat(31) + "█");
+        System.out.println(" " + " ".repeat(98) + " ");
+        System.out.println(" ".repeat(100));
         System.out.println("Simulation Time: " + String.format("%.2f", CloudSim.clock()) + " time units");
         System.out.println("Configuration: " + numMachines + " machines, " + initialNumEdges + " edge devices");
-        System.out.println("█".repeat(100));
+        System.out.println(" ".repeat(100));
         
         MetricsCollector.printDetailedMetrics();
         
@@ -417,13 +417,11 @@ public class IntelliPdM {
         System.out.println("   Automatic model updates from cloud to edge");
         System.out.println("   Predictive maintenance prevented machine failures");
         
-        System.out.println("█".repeat(100));
-        System.out.println("█" + " ".repeat(98) + "█");
-        System.out.println("█" + " ".repeat(30) + "END OF INTELLIPDM ENHANCED RESULTS" + " ".repeat(32) + "█");
-        System.out.println("█" + " ".repeat(98) + "█");
-        System.out.println("█".repeat(100));
+        System.out.println(" ".repeat(100));
+        System.out.println(" " + " ".repeat(98) + " ");
+        System.out.println(" " + " ".repeat(30) + "END OF INTELLIPDM ENHANCED RESULTS" + " ".repeat(32) + "█");
+        System.out.println(" " + " ".repeat(98) + " ");
+        System.out.println(" ".repeat(100));
         LOGGER.info("Comprehensive metrics printed.");
     }
-
-    
 }
