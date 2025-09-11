@@ -198,7 +198,8 @@ public class ModulePlacementEdgewards extends ModulePlacement{
 						// NOW THE MODULE TO PLACE IS IN THE CURRENT DEVICE. CHECK IF THE NODE CAN SUSTAIN THE MODULE
 						for(AppEdge edge : getApplication().getEdges()){		// take all incoming edges
 							if(edge.getDestination().equals(moduleName)){
-								double rate = appEdgeToRate.get(edge);
+								Double rateVal = appEdgeToRate.get(edge);
+								double rate = rateVal != null ? rateVal : 0.0;
 								totalCpuLoad += rate*edge.getTupleCpuLength();
 							}
 						}
@@ -220,7 +221,8 @@ public class ModulePlacementEdgewards extends ModulePlacement{
 					// FINDING OUT WHETHER PLACEMENT OF OPERATOR ON DEVICE IS POSSIBLE
 					for(AppEdge edge : getApplication().getEdges()){		// take all incoming edges
 						if(edge.getDestination().equals(moduleName)){
-							double rate = appEdgeToRate.get(edge);
+							Double rateVal = appEdgeToRate.get(edge);
+							double rate = rateVal != null ? rateVal : 0.0;
 							totalCpuLoad += rate*edge.getTupleCpuLength();
 						}
 					}
