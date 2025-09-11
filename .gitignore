@@ -1,6 +1,4 @@
 .env
-*.h5
-*.joblib
 *.properties
 *.log
-*.pkl
+venv/

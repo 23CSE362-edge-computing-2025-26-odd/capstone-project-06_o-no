@@ -175,9 +175,9 @@ public class CloudMLModule extends AppModule {
                     LOGGER.info("CloudML initiating model update to edge devices at time " + String.format("%.2f", CloudSim.clock()));
         
         try {
-            File modelFile = new File(IntelliPdM.projectDirPath + "/python_ml/cnn_model.h5");
+            File modelFile = new File(IntelliPdM.projectDirPath + "/python_ml/ann_model.keras");
             if (!modelFile.exists()) {
-                LOGGER.warning(" CNN model not found, skipping model update");
+                LOGGER.warning(" ANN model not found, skipping model update");
                 return;
             }
             
