@@ -58,7 +58,7 @@ print(f"Very high temp (temp=80, voltage=220): prob={test_prediction(80, 220, 'n
 print(f"Very high voltage (temp=50, voltage=260): prob={test_prediction(50, 260, 'normal')[0]:.4f}")
 
 print("\n4. Analysis of training data:")
-df = pd.read_csv('clean_synthetic_data.csv')
+df = pd.read_csv('synthetic_data.csv')
 normal_data = df[df['label'] == 0]
 fault_data = df[df['label'] == 1]
 
