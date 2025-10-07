@@ -14,7 +14,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import tensorflow as tf
 import warnings
-warnings.filterwarnings('ignore')
+import os 
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  
+
+warnings.filterwarnings('ignore') 
 
 from config import RANDOM_SEED, SIMULATION_TIME, INTER_ARRIVAL_MEAN, EDGE_CAPACITY, CLOUD_CAPACITY, NUM_FAULT_CLASSES, COMPLEXITY_THRESHOLD, DATASET_PATH, FEATURE_COLUMNS, FAULT_TYPES
 from logger import SystemLogger
@@ -103,8 +107,7 @@ def analyze_results(metrics, rf_cm, dense_cm):
       ax5 = fig.add_subplot(gs[1, 1]); ax5.plot(pd.Series(metrics['scheduling']['ga_fitness_scores']).rolling(window=10).mean(), color='#8172b2'); ax5.set_title('GA Fitness Score (Lower is Better)'); ax5.set_xlabel('Task Instance'); ax5.set_ylabel('Fitness Score')
     ax6 = fig.add_subplot(gs[2, 0]); sns.heatmap(rf_cm, annot=True, fmt='d', cmap='Blues', ax=ax6, xticklabels=FAULT_TYPES.values(), yticklabels=FAULT_TYPES.values()); ax6.set_title('Edge RF Model Confusion Matrix'); ax6.set_xlabel('Predicted'); ax6.set_ylabel('Actual')
     ax7 = fig.add_subplot(gs[2, 1]); sns.heatmap(dense_cm, annot=True, fmt='d', cmap='Reds', ax=ax7, xticklabels=FAULT_TYPES.values(), yticklabels=FAULT_TYPES.values()); ax7.set_title('Cloud Dense Model Confusion Matrix'); ax7.set_xlabel('Predicted'); ax7.set_ylabel('Actual')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.show()
-
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.show()  
 
 if __name__ == "__main__":
     final_metrics, rf_cm, dense_cm = run_simulation()
@@ -120,3 +123,5 @@ if __name__ == "__main__":
         print(f"✓ \033[1mProactive Maintenance:\033[0m With an overall accuracy of \033[1m{overall_accuracy_val:.2%}\033[0m, the system reliably detected {final_metrics['total_faults_detected']} potential equipment failures, directly translating to reduced downtime and increased factory productivity.")
         print("\n\033[1mConclusion:\033[0m This simulation validates a robust, efficient, and intelligent Edge-Cloud architecture, perfectly suited for the demands of modern Industry 4.0 predictive maintenance.")
         print("="*70)
+
+        
