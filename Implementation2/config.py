@@ -5,8 +5,7 @@ EDGE_CAPACITY = 5
 CLOUD_CAPACITY = 100 
 NUM_FAULT_CLASSES = 6  
 COMPLEXITY_THRESHOLD = 1.5  
-DATASET_PATH = 'C:/Users/prade/Desktop/Edge/Review-3/Implementation2/dataset.csv' 
-
+DATASET_PATH = 'capstone-project-06_o-no/Implementation2/dataset.csv' 
 
 FEATURE_COLUMNS = [
     'Air temperature [K]',
@@ -15,7 +14,6 @@ FEATURE_COLUMNS = [
     'Torque [Nm]',
     'Tool wear [min]'
 ]
-
 
 FAULT_TYPES = {
     0: 'Normal',

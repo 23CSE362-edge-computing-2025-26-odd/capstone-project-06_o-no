@@ -5,3 +5,5 @@ tensorflow
 matplotlib 
 seaborn 
 simpy
+xgboost
+lightgbm
